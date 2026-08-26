@@ -5,9 +5,14 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+import google.generativeai as genai
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
+
+if "GEMINI_API_KEY" not in os.environ:
+    raise ValueError("GEMINI_API_KEY environment variable is missing. It is required to start the app.")
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 # --- CONFIGURATION ---
 DB_PATH = "data/biasguard.db"
@@ -68,6 +73,17 @@ def login_required(f):
 # --- CORE FAIRNESS ENGINE ---
 def generate_impactful_insight(male_rate, female_rate, ratio, severity):
     gap = round(abs(male_rate - female_rate) * 100, 1)
+    
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        prompt = f"Analyze these bias metrics in a decision system: Male approval rate: {male_rate:.2f}, Female approval rate: {female_rate:.2f}, Ratio: {ratio:.2f}, Severity Level: {severity}. Provide a clear, 2-3 sentence plain-English explanation of this bias for a non-technical manager. Do not include markdown formatting or pleasantries, just the explanation."
+        response = model.generate_content(prompt)
+        if response.text:
+            return response.text.strip()
+    except Exception as e:
+        print(f"Gemini AI insight generation failed: {e}")
+        
+    # Fallback template
     problem = f"The model exhibits a <b class='text-white'>{severity}</b> equity variance. A {gap}% gap indicates systematic favoritism in the decision vectors."
     impact = "Significant barriers detected in hiring and lending access for protected segments." if severity == "CRITICAL" else "Subtle bias markers are beginning to emerge."
     return f"{problem}\n\nIMPACT: {impact}"
