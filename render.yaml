@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: biasguard
+    env: docker
+    envVars:
+      - key: FLASK_SECRET_KEY
+        sync: false

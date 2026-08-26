@@ -5,21 +5,12 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
-import vertexai
-from vertexai.generative_models import GenerativeModel
 
 app = Flask(__name__)
-app.secret_key = "biasguard_ultra_secret_key" # Replace with environment variable in production
+app.secret_key = os.environ["FLASK_SECRET_KEY"]
 
 # --- CONFIGURATION ---
-PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "unbiased-ai-demo")
-LOCATION = "us-central1"
 DB_PATH = "data/biasguard.db"
-
-try:
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
-except:
-    pass
 
 # --- DATABASE SETUP ---
 def get_db_connection():
